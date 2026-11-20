@@ -354,3 +354,52 @@ const cardNumber = req.body.card;
 ```
 
 Equivalente: constante de pacote, enum, ou objeto de política. Não espalhe o mesmo literal em outro arquivo.
+
+## 13. Controle de acesso em operação sensível
+
+Problema: delete de usuário, troca de papel, relatório, reset ou rota administrativa responde sem ler credencial. A Fase 2 registrou o finding e a Fase 3 manteve a rota anônima para não mudar o status. Alvo: middleware na borda HTTP, antes do controller. Contrato: método e caminho ficam. Sem credencial válida o status novo é 401. Autenticado sem permissão para aquela ação é 403. Com credencial válida, o corpo de sucesso anterior permanece. O token exibido só no JSON de login, e ignorado pelas outras rotas, não conta como correção.
+
+Passos:
+
+1. Liste as rotas citadas no finding (apagar usuário, alterar role, ler relatório, reset, admin).
+2. Se já existe login, guarde o token que ele emite (memória do processo, sessão ou tabela) e leia `Authorization: Bearer` nesse armazenamento. Não gere outro formato de credencial em paralelo.
+3. Se não existe login, crie o menor fluxo de emissão no idioma da stack, com a função de senha que o projeto já usa, e proteja só as rotas do finding. Checkout, health e leitura pública continuam sem credencial.
+4. Identidade ausente, token desconhecido ou usuário inativo: 401, e a operação não roda.
+5. Ação privilegiada (trocar role, apagar outra conta, reset): 403 quando o sujeito autenticado não tem o papel.
+6. A Fase 3 não termina enquanto uma chamada sem header falha e a mesma chamada com o token do login sucede.
+
+```python
+# antes
+@app.route("/users/<int:user_id>", methods=["DELETE"])
+def delete_user(user_id):
+    User.query.get(user_id)
+    db.session.delete(user)
+    return jsonify({"message": "Usuário deletado"}), 200
+
+# depois
+def delete_user(user_id):
+    actor = user_for_token(request.headers.get("Authorization", ""))
+    if actor is None:
+        return jsonify({"error": "Não autenticado"}), 401
+    if actor.id != user_id and not actor.is_admin():
+        return jsonify({"error": "Acesso negado"}), 403
+    # ... persistência
+```
+
+```javascript
+// antes
+router.delete("/api/users/:id", async (req, res) => {
+  await deleteUser(req.params.id);
+  res.send("Usuário deletado.");
+});
+
+// depois
+router.delete("/api/users/:id", async (req, res) => {
+  const actor = userForToken(req.headers.authorization);
+  if (!actor) return res.status(401).send("Não autenticado");
+  await deleteUser(req.params.id);
+  res.send("Usuário deletado.");
+});
+```
+
+Equivalente: filtro Spring Security, middleware Laravel, `before_action :authenticate` no Rails, `[Authorize]` no ASP.NET. O mecanismo muda; a regra não: a Fase 2 apontou a rota, a Fase 3 deixa de executá-la sem identidade.

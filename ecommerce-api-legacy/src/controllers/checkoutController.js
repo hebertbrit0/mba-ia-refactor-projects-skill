@@ -9,7 +9,7 @@ function parseCheckout(body) {
     const password = body.pwd;
     const courseId = body.c_id;
     const cardNumber = body.card;
-    if (!userName || !email || !courseId || !cardNumber) {
+    if (!userName || !email || !password || !courseId || !cardNumber) {
         return { error: "Bad Request" };
     }
     return { userName, email, password, courseId, cardNumber };
@@ -49,7 +49,7 @@ async function checkout(db, req, res) {
                 db,
                 parsed.userName,
                 parsed.email,
-                hashPassword(parsed.password || "123456")
+                hashPassword(parsed.password)
             );
             userId = created.lastID;
         } catch (_err) {

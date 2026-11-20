@@ -1,4 +1,5 @@
 const store = require("../models/courseModel");
+const { requireUser } = require("./userController");
 
 function buildReport(rows) {
     const report = [];
@@ -27,7 +28,10 @@ function buildReport(rows) {
     return report;
 }
 
-async function financialReport(db, _req, res) {
+async function financialReport(db, req, res) {
+    if (requireUser(req, res) == null) {
+        return undefined;
+    }
     try {
         const rows = await store.financialRows(db);
         return res.json(buildReport(rows));

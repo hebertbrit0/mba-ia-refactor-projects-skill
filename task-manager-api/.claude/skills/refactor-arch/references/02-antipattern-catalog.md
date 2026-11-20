@@ -69,7 +69,7 @@ Rota que apaga dados, lê relatório financeiro, reseta o banco ou executa SQL s
 
 Sinais: `/admin`, `/reset`, relatório financeiro ou `DELETE` de agregado sem leitura de credencial, sessão ou token.
 
-Impacto: qualquer cliente na rede executa a operação. Recomendação: quando o contrato público legado exige que a rota continue anônima para não quebrar clientes, registre o finding e não invente um esquema de auth que mude o status das chamadas atuais. Quando a rota é claramente operacional (SQL arbitrário), desligue a capacidade perigosa e responda erro estável.
+Impacto: qualquer cliente na rede executa a operação. Recomendação: corrigir na Fase 3. A rota deixa de ser anônima. Se o projeto já tem login que devolve token ou sessão, esse mesmo valor tem de ser conferido antes da operação. Sem credencial válida a resposta é 401. Autenticado sem permissão para a ação (trocar papel, apagar outro usuário, relatório administrativo) é 403. Manter a rota anônima para preservar o status antigo é falha da refatoração. SQL arbitrário continua desligado, com erro estável, além do controle de acesso.
 
 ## 7. Estado global mutável — HIGH
 

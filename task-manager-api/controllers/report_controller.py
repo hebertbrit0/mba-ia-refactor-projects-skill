@@ -4,6 +4,7 @@ from flask import jsonify, request
 from sqlalchemy import func
 
 from database import db
+from middlewares.auth import require_user
 from models.category import Category
 from models.task import Task
 from models.user import User
@@ -11,6 +12,10 @@ from utils.helpers import DEFAULT_COLOR, calculate_percentage, utcnow
 
 
 def summary_report():
+    _, error = require_user()
+    if error:
+        return error
+
     now = utcnow()
     total_tasks = Task.query.count()
     total_users = User.query.count()
@@ -103,6 +108,10 @@ def summary_report():
 
 
 def user_report(user_id):
+    _, error = require_user()
+    if error:
+        return error
+
     user = db.session.get(User, user_id)
     if not user:
         return jsonify({"error": "Usuário não encontrado"}), 404
@@ -192,6 +201,10 @@ def update_category(cat_id):
 
 
 def delete_category(cat_id):
+    _actor, error = require_user()
+    if error:
+        return error
+
     category = db.session.get(Category, cat_id)
     if not category:
         return jsonify({"error": "Categoria não encontrada"}), 404

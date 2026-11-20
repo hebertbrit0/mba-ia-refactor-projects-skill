@@ -2,6 +2,7 @@ from flask import jsonify, request
 from sqlalchemy.orm import joinedload
 
 from database import db
+from middlewares.auth import require_user
 from models.category import Category
 from models.task import Task
 from models.user import User
@@ -129,6 +130,10 @@ def update_task(task_id):
 
 
 def delete_task(task_id):
+    _actor, error = require_user()
+    if error:
+        return error
+
     task = db.session.get(Task, task_id)
     if not task:
         return jsonify({"error": "Task não encontrada"}), 404

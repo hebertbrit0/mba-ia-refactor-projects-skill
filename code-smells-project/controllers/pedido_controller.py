@@ -32,8 +32,9 @@ def criar_pedido():
 
     preparados = []
     total = 0
+    produtos = pedido_model.buscar_produtos(item["produto_id"] for item in itens)
     for item in itens:
-        produto = pedido_model.buscar_produto(item["produto_id"])
+        produto = produtos.get(item["produto_id"])
         if produto is None:
             return jsonify({
                 "erro": "Produto " + str(item["produto_id"]) + " não encontrado",

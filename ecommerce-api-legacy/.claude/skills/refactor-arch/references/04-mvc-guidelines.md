@@ -41,7 +41,7 @@ O mapa mostra onde cada responsabilidade costuma morar. Stack ausente: escolha o
 
 ## Contrato externo
 
-Refatorar por dentro. Por fora, método, caminho, status e campos que não são sensíveis permanecem. Campo que vaza senha, segredo ou cartão sai da resposta: isso é correção, não quebra gratuita.
+Refatorar por dentro. Por fora, método e caminho permanecem. O corpo de sucesso permanece, exceto campo que vaza senha, segredo ou cartão. Finding de segurança da Fase 2 muda o status de quem chama sem credencial: operação sensível sem token ou sessão responde 401, e ação privilegiada sem permissão responde 403. Preservar o status anônimo antigo não é parte do contrato.
 
 Comando de validação é o do projeto (`npm start`, `python app.py`, `go run`, `dotnet run`, `php artisan serve`). Não troque de framework para "facilitar" a validação.
 

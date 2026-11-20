@@ -61,7 +61,7 @@ O `SKILL.md` é o procedimento: ler os cinco references, imprimir a Fase 1 com o
 | `references/04-mvc-guidelines.md` | Responsabilidades fixas e um mapa ilustrativo (Flask, Django, FastAPI, Express, Nest, Spring, Laravel, Rails, ASP.NET, Gin) |
 | `references/05-refactor-playbook.md` | 12 transformações com antes/depois em Python e JavaScript, e a ordem de traduzir o padrão em vez de colar o sample |
 
-O catálogo cobre o que a análise manual mostrou de fato: SQL concatenado, segredo literal, dado sensível na resposta, God class, regra na borda HTTP, operação sensível sem controle, estado global, criptografia fraca, N+1, validação duplicada, API deprecated, número mágico, nome opaco e código morto. A detecção de API deprecated tem substituto moderno (`datetime.utcnow()` → `datetime.now(timezone.utc)`, `new Buffer()` → `Buffer.from()`, e o equivalente quando a stack for outra).
+O catálogo cobre o que a análise manual mostrou de fato: SQL concatenado, segredo literal, dado sensível na resposta, God class, regra na borda HTTP, operação sensível sem controle, estado global, criptografia fraca, N+1, validação duplicada, API deprecated, número mágico, nome opaco e código morto. A detecção de API deprecated tem substituto moderno (`datetime.utcnow()` → `datetime.now(timezone.utc)`, `new Buffer()` → `Buffer.from()`, e o equivalente quando a stack for outra). Operação sensível não fica só no relatório: o playbook tem o padrão de controle de acesso, e a Fase 3 do `SKILL.md` manda corrigir o finding em vez de preservar a rota anônima.
 
 A skill fica agnóstica porque nenhum reference cita estes três diretórios, nenhum fluxo assume Flask ou Express como único alvo, e a Fase 3 manda preservar o entry point e o contrato HTTP do projeto em que ela foi invocada. Exemplos em duas linguagens existem para o agente generalizar.
 
@@ -218,11 +218,11 @@ POST /login {"email":"maria@email.com","password":"abcd"} -> 200
 {"message":"Login realizado com sucesso","token":"5AYRQCYOIZa_HsPy8w1GspnQXARP3TXMCRaD_o0B9pE","user":{"email":"maria@email.com","role":"user",...}}
 ```
 
-O objeto `user` não tem `password`. O token não é `fake-jwt-token-<id>`.
+O objeto `user` não tem `password`. O token não é `fake-jwt-token-<id>`. `GET /reports/summary`, `PUT /users/<id>` e `DELETE /users/<id>` sem `Authorization: Bearer` respondem 401. Com o token do login, o relatório responde 200. Trocar `role` ou apagar outro usuário sem papel admin responde 403.
 
 ### O que mudou entre as stacks
 
-No Flask monolítico a Fase 3 criou as pastas, porque não havia camada. No Express a mesma skill separou a God class e trocou callback aninhado por função assíncrona, mantendo `:memory:` e os textos de `api.http`. No task manager, que já tinha model e blueprint, a Fase 3 não recriou a árvore: moveu o caso de uso para `controllers/`, trocou MD5 pelo hash do Werkzeug e substituiu `datetime.utcnow()` por um único helper em cima de `datetime.now(timezone.utc)`. O contrato HTTP (rotas e status) ficou nos três.
+No Flask monolítico a Fase 3 criou as pastas, porque não havia camada. No Express a mesma skill separou a God class e trocou callback aninhado por função assíncrona, mantendo `:memory:` e os textos de `api.http`. No task manager, que já tinha model e blueprint, a Fase 3 não recriou a árvore: moveu o caso de uso para `controllers/`, trocou MD5 pelo hash do Werkzeug, substituiu `datetime.utcnow()` por um único helper em cima de `datetime.now(timezone.utc)` e passou a conferir o token do login nas rotas que a auditoria marcou como sem identidade. O método e o caminho HTTP ficaram nos três. O status anônimo de operação sensível não.
 
 ## Como Executar
 
@@ -264,4 +264,4 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 
 `SECRET_KEY`, `PORT`, `HOST`, `FLASK_DEBUG`, `DB_PATH`, `DATABASE_URL`, `PAYMENT_GATEWAY_KEY` e `SMTP_PASSWORD` saem do ambiente. Sem `SECRET_KEY`, o processo gera uma chave efêmera só para aquele boot.
 
-Para validar, chame os caminhos que já existiam: no projeto 1, `/health`, `/produtos`, `/login`, `/pedidos` e `/relatorios/vendas`; no projeto 2, os três pedidos de `api.http`; no projeto 3, `/tasks`, `/users`, `/login`, `/reports/summary` e `/categories`. Login do e-commerce: `admin@loja.com` / `admin123`. Login do task manager, depois do seed: `joao@email.com` / `1234`.
+Para validar, chame os caminhos que já existiam. No projeto 1, `/health`, `/produtos`, `/login` e `/pedidos` seguem públicos. `GET /relatorios/vendas` exige o token do `POST /login`. `DELETE /produtos/<id>` e `POST /admin/reset-db` exigem o token de um usuário `admin` (`admin@loja.com` / `admin123`); sem token a resposta é 401 e com um cliente é 403. No projeto 2, o checkout de `api.http` segue sem credencial e, sem `pwd`, responde 400. `GET /api/admin/financial-report` exige `Authorization: Bearer` de `POST /api/login` (`leonan@fullcycle.com.br` / `123`). `DELETE /api/users/:id` exige esse token e só apaga o próprio usuário; outro id responde 403. No projeto 3, `GET /tasks` segue público. `DELETE /tasks/<id>`, `DELETE /categories/<id>`, `/reports/summary`, a troca de role e o delete de usuário exigem o token de `POST /login`. `POST /users` com `role` diferente de `user` sem admin responde 403. Login do task manager, depois do seed: `joao@email.com` / `1234` (admin) e `maria@email.com` / `abcd` (user).

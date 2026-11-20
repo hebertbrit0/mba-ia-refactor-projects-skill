@@ -2,6 +2,7 @@ from flask import jsonify, request
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from models import usuario_model
+from middlewares.auth import issue_token
 
 
 def listar_usuarios():
@@ -46,5 +47,10 @@ def login():
             "email": usuario["email"],
             "tipo": usuario["tipo"],
         }
-        return jsonify({"dados": publico, "sucesso": True, "mensagem": "Login OK"}), 200
+        return jsonify({
+            "dados": publico,
+            "sucesso": True,
+            "mensagem": "Login OK",
+            "token": issue_token(usuario["id"]),
+        }), 200
     return jsonify({"erro": "Email ou senha inválidos", "sucesso": False}), 401

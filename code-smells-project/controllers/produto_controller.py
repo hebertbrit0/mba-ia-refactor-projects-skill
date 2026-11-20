@@ -1,5 +1,6 @@
 from flask import jsonify, request
 
+from middlewares.auth import current_user
 from models import produto_model
 
 MIN_NOME = 2
@@ -99,6 +100,12 @@ def atualizar_produto(produto_id):
 
 
 def deletar_produto(produto_id):
+    user = current_user()
+    if user is None:
+        return jsonify({"erro": "Não autenticado", "sucesso": False}), 401
+    if user.get("tipo") != "admin":
+        return jsonify({"erro": "Acesso negado", "sucesso": False}), 403
+
     produto = produto_model.buscar_por_id(produto_id)
     if not produto:
         return jsonify({"erro": "Produto não encontrado"}), 404

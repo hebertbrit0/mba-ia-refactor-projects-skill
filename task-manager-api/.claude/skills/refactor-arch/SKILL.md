@@ -67,11 +67,12 @@ Só começa depois da confirmação da Fase 2.
 
 1. Escolha o layout MVC a partir das convenções da stack detectada (reference 04). Se o projeto já tiver camadas, complete o que falta. Não imponha uma árvore de outra stack.
 2. Aplique os padrões do playbook (reference 05) traduzidos para a stack detectada. Não copie sample de outra linguagem.
-3. Preserve o contrato externo: rotas, métodos HTTP, status e formato de resposta que os clientes já usam. Corrija comportamento inseguro (não vaze segredo, não execute SQL arbitrário) mesmo que o corpo da resposta precise deixar de expor o dado sensível.
-4. Extraia configuração do código-fonte. Centralize o tratamento de erro. Deixe um entry point que só compõe as peças.
+3. Preserve método, caminho e o corpo de sucesso das rotas. Isso não preserva comportamento inseguro que a Fase 2 apontou. Todo finding CRITICAL e HIGH é corrigido no código. Operação sensível sem autenticação passa a exigir o token ou a sessão que o login deste projeto emite. Sem credencial a resposta é 401. Com credencial e sem permissão, 403. Deixar a rota anônima porque o contrato legado era anônimo é falha da Fase 3. Segredo não vaza. SQL arbitrário não executa.
+4. Extraia configuração do código-fonte. Centralize o tratamento de erro. Deixe um entry point que só compõe as peças. O middleware de acesso fica na borda HTTP e chama o controller só depois de aceitar a credencial.
 5. Valide:
    - a aplicação sobe com o comando de start do próprio projeto, sem erro de import ou de boot;
-   - os endpoints originais respondem com os status esperados;
+   - os endpoints originais respondem: os públicos como antes; os sensíveis com 401 sem credencial e com o status de sucesso quando a credencial é válida;
+   - o token devolvido pelo login é lido por pelo menos uma rota que a Fase 2 marcou como sem controle de acesso;
    - os anti-patterns CRITICAL e HIGH tratados não permanecem no código alterado.
 6. Imprima:
 

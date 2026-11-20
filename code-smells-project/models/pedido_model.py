@@ -8,6 +8,18 @@ def buscar_produto(produto_id):
     ).fetchone()
 
 
+def buscar_produtos(produto_ids):
+    ids = list(dict.fromkeys(produto_ids))
+    if not ids:
+        return {}
+    placeholders = ", ".join("?" for _ in ids)
+    rows = get_db().execute(
+        f"SELECT id, nome, preco, estoque FROM produtos WHERE id IN ({placeholders})",
+        tuple(ids),
+    ).fetchall()
+    return {row["id"]: row for row in rows}
+
+
 def salvar(usuario_id, total, itens):
     db = get_db()
     cursor = db.execute(

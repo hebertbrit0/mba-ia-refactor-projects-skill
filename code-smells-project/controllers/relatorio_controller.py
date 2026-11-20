@@ -1,5 +1,6 @@
 from flask import jsonify
 
+from middlewares.auth import current_user
 from models import pedido_model
 
 DESCONTOS = (
@@ -17,6 +18,9 @@ def _desconto(faturamento):
 
 
 def relatorio_vendas():
+    if current_user() is None:
+        return jsonify({"erro": "Não autenticado", "sucesso": False}), 401
+
     resumo = pedido_model.resumo_vendas()
     faturamento = resumo["faturamento"] or 0
     desconto = _desconto(faturamento)

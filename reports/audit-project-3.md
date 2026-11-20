@@ -44,7 +44,7 @@ Recommendation: Rota só delega. Controller orquestra. Model responde is_overdue
 File: app.py:34; routes/user_routes.py:134-151; routes/report_routes.py:12
 Description: Não há verificação de identidade em delete de usuário, relatórios ou alteração de role. O processo sobe com debug=True em 0.0.0.0.
 Impact: Qualquer cliente na rede apaga usuário e lê produtividade. O debugger do Werkzeug não pode ficar exposto.
-Recommendation: Debug e host vêm do ambiente, desligados por padrão. O contrato atual das rotas continua anônimo para não mudar o status das chamadas existentes; o dado sensível sai da resposta.
+Recommendation: Debug e host vêm do ambiente, desligados por padrão. A Fase 3 exige o token emitido por POST /login (Authorization: Bearer) em delete de usuário, troca de role e leitura de relatório. Sem credencial a resposta é 401. Troca de role ou delete de outra conta sem papel admin é 403.
 
 ### [MEDIUM] N+1 queries
 File: routes/task_routes.py:41-57; routes/report_routes.py:53-68; routes/report_routes.py:157-164; routes/user_routes.py:22

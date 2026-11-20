@@ -1,10 +1,9 @@
-import re
-import secrets
-
 from flask import jsonify, request
 from sqlalchemy import func
+import re
 
 from database import db
+from middlewares.auth import current_user, issue_token, require_user, revoke_user
 from models.task import Task
 from models.user import User
 from utils.helpers import MIN_PASSWORD_LENGTH, VALID_ROLES, log_action
@@ -60,6 +59,9 @@ def create_user():
     email = data.get("email")
     password = data.get("password")
     role = data.get("role", "user")
+    actor = current_user()
+    if role != "user" and (actor is None or not actor.is_admin()):
+        return jsonify({"error": "Acesso negado"}), 403
 
     if not name:
         return jsonify({"error": "Nome é obrigatório"}), 400
@@ -88,13 +90,22 @@ def create_user():
 
 
 def update_user(user_id):
+    actor, error = require_user()
+    if error:
+        return error
+
     user = db.session.get(User, user_id)
     if not user:
         return jsonify({"error": "Usuário não encontrado"}), 404
+    if actor.id != user_id and not actor.is_admin():
+        return jsonify({"error": "Acesso negado"}), 403
 
     data = request.get_json(silent=True)
     if not data:
         return jsonify({"error": "Dados inválidos"}), 400
+
+    if ("role" in data or "active" in data) and not actor.is_admin():
+        return jsonify({"error": "Acesso negado"}), 403
 
     if "name" in data:
         user.name = data["name"]
@@ -125,13 +136,20 @@ def update_user(user_id):
 
 
 def delete_user(user_id):
+    actor, error = require_user()
+    if error:
+        return error
+
     user = db.session.get(User, user_id)
     if not user:
         return jsonify({"error": "Usuário não encontrado"}), 404
+    if actor.id != user_id and not actor.is_admin():
+        return jsonify({"error": "Acesso negado"}), 403
 
     Task.query.filter_by(user_id=user_id).delete()
     db.session.delete(user)
     db.session.commit()
+    revoke_user(user_id)
     log_action("user_deleted", str(user_id))
     return jsonify({"message": "Usuário deletado com sucesso"}), 200
 
@@ -163,5 +181,5 @@ def login():
     return jsonify({
         "message": "Login realizado com sucesso",
         "user": user.to_dict(),
-        "token": secrets.token_urlsafe(32),
+        "token": issue_token(user.id),
     }), 200

@@ -10,6 +10,10 @@ function findUserByEmail(db, email) {
     return get(db, "SELECT id FROM users WHERE email = ?", [email]);
 }
 
+function findUserCredentials(db, email) {
+    return get(db, "SELECT id, email, pass FROM users WHERE email = ?", [email]);
+}
+
 function createUser(db, name, email, passwordHash) {
     return run(
         db,
@@ -82,6 +86,7 @@ module.exports = {
     PAID_STATUS,
     findActiveCourse,
     findUserByEmail,
+    findUserCredentials,
     createUser,
     createEnrollment,
     createPayment,
